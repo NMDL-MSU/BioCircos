@@ -1,0 +1,337 @@
+---
+title: BioCircos MFM Differential Expression Analysis
+author: Deborah Velez-Irizarry
+date: Thu Aug 29 10:04:45 EDT 2019
+---
+
+```{r setup, echo=FALSE, message=FALSE}
+require(knitr)
+#turn off mesages and warnings and make it so output isn't prefixed by anything,
+#default is to put "##" in front of all output for some reason
+#also set tidy to true so code is wrapped properly
+opts_chunk$set(message=FALSE, warning=FALSE, echo = FALSE, 
+	tidy = TRUE, comment = "", cache = F)
+options(width = 200)
+
+```{js}
+function addSvgSaveButtonJquery(buttonId, topSvg) {
+  $(buttonId).append("<a id=imgDownload></a>")
+  $(buttonId).click(function() {
+    var html = $(
+    $(topSvg).attr("version", 1.1)
+             .attr("xmlns","http://www.w3.org/2000/svg")).clone()
+      .wrap('<p/>').parent().html();
+    // add the svg information to a and then click it to trigger the
+    // download
+    var imgsrc = 'data:image/svg+xml;base64,' + btoa(html);
+    $(buttonId + " #imgDownload").attr("download", "graph.svg");
+    $(buttonId + " #imgDownload").attr("href", imgsrc);
+    var a = $(buttonId + " #imgDownload")[0];
+    a.click();
+  });
+}
+
+```{r }
+rm(list=ls())
+
+```{r }
+library(BioCircos)
+library(viridis)
+library(grDevices)
+
+```{r }
+dir <- "/mnt/research/NMDL/KER_Glycogen_and_RER_Thoroughbred/Omics/Plots/RER_Thoroughbred/BioCircos"
+fl <- "BioCircos.Rdata"
+load(paste(dir, fl, sep="/"))
+```
+
+### Transcriptomic and Proteomic Assesment of RER in Thoughbred Horses
+> Differential expression of genes and proteins identified in horses diagnosed 
+> with exertional rhabdomyolysis. 
+
+```{r RER_BioCirco, fig.align='center', dpi=200}
+
+# Start BioCircos Tracks
+tracks = BioCircosTracklist()
+
+# Chromosomal position of DE genes
+# Upregulated Genes
+up <- sigG[sigG$logFC > 0,]
+  tracks = tracks + BioCircosBarTrack("geneUp",
+  	chromosome = up$chr, labels = as.character(up$genes),
+    starts = up$start/1e6, ends = ((up$start/1e6) + 5),
+    values = 100, color = "#0D0887FF", range = c(0,100),
+	maxRadius = 0.95, minRadius = 0.875)
+
+red <- up[as.character(up$genes) %in% as.character(DEoverlap$gene),]
+  tracks = tracks + BioCircosBarTrack("geneUp2",
+  	chromosome = red$chr, labels = as.character(red$genes),
+    starts = red$start/1e6, ends = ((red$start/1e6) + 5),
+    values = 100, color = "deepskyblue", range = c(0,100),
+	maxRadius = 0.95, minRadius = 0.875)
+
+
+# Downregulated Genes
+down <- sigG[sigG$logFC < 0,]
+  tracks = tracks + BioCircosBarTrack("geneDown",
+  	chromosome = down$chr, labels = as.character(down$genes),
+    starts = down$start/1e6, ends = ((down$start/1e6) + 5),
+    values = 100, color = "#D8576BFF", range = c(0,100),
+    maxRadius = 0.875, minRadius = 0.80)
+
+red <- down[as.character(down$genes) %in% as.character(DEoverlap$gene),]
+  tracks = tracks + BioCircosBarTrack("geneDown2",
+  	chromosome = red$chr, labels = as.character(red$genes),
+    starts = red$start/1e6, ends = ((red$start/1e6) + 5),
+    values = 100, color = "deepskyblue", range = c(0,100),
+    maxRadius = 0.875, minRadius = 0.80)
+
+
+# Chromosomal position of DE proteins
+# Upregulated Proteins
+up <- sigP[sigP$Log2FoldChange > 0,]
+	tracks = tracks + BioCircosBarTrack("protUp",
+	  chromosome = up$seqid, labels = as.character(up$gene),
+	  starts = up$start/1e6, ends = ((up$start/1e6) + 5),
+	  values = 100, color = "#0D0887FF", range = c(0,100),
+      maxRadius = 0.75, minRadius = 0.675)
+
+red <- up[as.character(up$gene) %in% as.character(DEoverlap$gene),]
+	tracks = tracks + BioCircosBarTrack("protUp2",
+	  chromosome = red$seqid, labels = as.character(red$gene),
+	  starts = red$start/1e6, ends = ((red$start/1e6) + 5),
+	  values = 100, color = "deepskyblue", range = c(0,100),
+      maxRadius = 0.75, minRadius = 0.675)
+
+
+# Downregulated Proteins
+down <- sigP[sigP$Log2FoldChange < 0,]
+  tracks = tracks + BioCircosBarTrack("protDown",
+  	chromosome = down$seqid, labels = as.character(down$gene),
+    starts = down$start/1e6, ends = ((down$start/1e6) + 5),
+    values = 100, color = "#D8576BFF", range = c(0,100),
+    maxRadius = 0.675, minRadius = 0.6)
+
+red <- down[as.character(down$gene) %in% as.character(DEoverlap$gene),]
+  tracks = tracks + BioCircosBarTrack("protDown2",
+  	chromosome = red$seqid, labels = as.character(red$gene),
+    starts = red$start/1e6, ends = ((red$start/1e6) + 5),
+    values = 100, color = "deepskyblue", range = c(0,100),
+    maxRadius = 0.675, minRadius = 0.6)
+
+
+# Add background
+tracks = tracks + BioCircosBackgroundTrack("Prot",
+	minRadius = 0.80, maxRadius = 0.95, borderColors = "salmon",
+	borderSize = 1, fillColors = "lavender")
+
+tracks = tracks + BioCircosBackgroundTrack("Genes",
+	minRadius = 0.60, maxRadius = 0.75, borderColors = "salmon",
+	borderSize = 1, fillColors = "lightyellow")
+
+
+# Add title in center
+tracks = tracks + BioCircosTextTrack("Title1", "Proteomics",
+	x = -0.3, y = -0.2, size = "2.2em",weight = "bold",
+	opacity = 1, color = "gold")
+
+tracks = tracks + BioCircosTextTrack("Title1", "&",
+	x = 0.22, y = -0.2, size = "2.2em",weight = "bold",
+	opacity = 1, color = "black")
+
+tracks = tracks + BioCircosTextTrack("Title3", "Transcriptomics:",
+	x = -0.35, y = -0.05, size = "2.2em",weight = "bold",
+	opacity = 1, color = "purple")
+
+tracks = tracks + BioCircosTextTrack("Title4", "Differential Expression",
+	x = -0.45, y = 0.1, size = "2.2em",weight = "bold", opacity = 1,
+	color = "black")
+
+tracks = tracks + BioCircosTextTrack("Title6", "in RER",
+	x = -0.14, y = 0.25, size = "2.2em",weight = "bold", opacity = 1,
+	color = "black")
+
+# Add list of genes with DE in both datasets
+nm <- sort(as.character(DEoverlap$gene))
+for (i in 1:length(nm)){
+	tracks = tracks + BioCircosTextTrack(nm[i], as.character(nm[i]),
+		x = 1.35, y = -1 + (i * .1), size = "1.2em", 
+		opacity = 1, color = "deepskyblue")
+}
+
+# Graph BioCircos for High Starch Diet
+BioCircos(tracks, genomeFillColor = plasma(length(lengthChr)), genome = as.list(lengthChr),
+  genomeTicksDisplay = F, genomeLabelDy = 0, genomeLabelTextSize = "16pt",
+  chrPad = 0.015, BARMouseOverTooltipsHtml01 = "Chromosome: ",
+  BARMouseOverTooltipsHtml02 = "<br/>Start (Mb): ",
+  BARMouseOverTooltipsHtml03 = "<br/>GP width: ",
+  BARMouseOverTooltipsHtml04 = "<br/>Gene: ",
+  BARMouseOverTooltipsHtml05 = "<br/>GP height: ",
+  BARMouseOverTooltipsHtml06 = "<br/>Reference Genome: EquCab3.0
+  <br/>GP: Graphical Parameter", LINKMouseOverTooltipsHtml01 = "Target Gene: ",
+  LINKMouseOverTooltipsHtml02 = "<br/>Transcription Factor: HSF4",
+  elementId = "RER_BioCirco")
+
+
+```{js}
+$("#RER_BioCirco").append("<button id=save_svg>Save As Svg</button>");
+//Give the selectors for button and svg element to download
+addSvgSaveButtonJquery("#RER_BioCirco", "#RER_BioCirco svg");
+```
+
+> Transcription factor enrichment (TFE) analysis identified the
+> heat shock transcription factor 4 (HSF4) enriched among the 
+> differentially expressed proteins. HSF4 was found to be differntially 
+> expressed in the transcriptome exhibiting a 1.7 fold change increase in 
+> horses with RER.
+
+```{r RER_BioCirco_TFM, fig.align='center', dpi=200}
+
+# Start BioCircos Tracks
+tracks = BioCircosTracklist()
+
+# Chromosomal position of DE genes
+# Upregulated Genes
+up <- sigG[sigG$logFC > 0,]
+  tracks = tracks + BioCircosBarTrack("geneUp",
+  	chromosome = up$chr, labels = as.character(up$genes),
+    starts = up$start/1e6, ends = ((up$start/1e6) + 5),
+    values = 100, color = "#0D0887FF", range = c(0,100),
+	maxRadius = 0.95, minRadius = 0.875)
+
+red <- up[as.character(up$genes) %in% as.character(DEoverlap$gene),]
+  tracks = tracks + BioCircosBarTrack("geneUp2",
+  	chromosome = red$chr, labels = as.character(red$genes),
+    starts = red$start/1e6, ends = ((red$start/1e6) + 5),
+    values = 100, color = "deepskyblue", range = c(0,100),
+	maxRadius = 0.95, minRadius = 0.875)
+
+
+# Downregulated Genes
+down <- sigG[sigG$logFC < 0,]
+  tracks = tracks + BioCircosBarTrack("geneDown",
+  	chromosome = down$chr, labels = as.character(down$genes),
+    starts = down$start/1e6, ends = ((down$start/1e6) + 5),
+    values = 100, color = "#D8576BFF", range = c(0,100),
+    maxRadius = 0.875, minRadius = 0.80)
+
+red <- down[as.character(down$genes) %in% as.character(DEoverlap$gene),]
+  tracks = tracks + BioCircosBarTrack("geneDown2",
+  	chromosome = red$chr, labels = as.character(red$genes),
+    starts = red$start/1e6, ends = ((red$start/1e6) + 5),
+    values = 100, color = "deepskyblue", range = c(0,100),
+    maxRadius = 0.875, minRadius = 0.80)
+
+
+# Chromosomal position of DE proteins
+# Upregulated Proteins
+up <- sigP[sigP$Log2FoldChange > 0,]
+	tracks = tracks + BioCircosBarTrack("protUp",
+	  chromosome = up$seqid, labels = as.character(up$gene),
+	  starts = up$start/1e6, ends = ((up$start/1e6) + 5),
+	  values = 100, color = "#0D0887FF", range = c(0,100),
+      maxRadius = 0.75, minRadius = 0.675)
+
+red <- up[as.character(up$gene) %in% as.character(DEoverlap$gene),]
+	tracks = tracks + BioCircosBarTrack("protUp2",
+	  chromosome = red$seqid, labels = as.character(red$gene),
+	  starts = red$start/1e6, ends = ((red$start/1e6) + 5),
+	  values = 100, color = "deepskyblue", range = c(0,100),
+      maxRadius = 0.75, minRadius = 0.675)
+
+
+# Downregulated Proteins
+down <- sigP[sigP$Log2FoldChange < 0,]
+  tracks = tracks + BioCircosBarTrack("protDown",
+  	chromosome = down$seqid, labels = as.character(down$gene),
+    starts = down$start/1e6, ends = ((down$start/1e6) + 5),
+    values = 100, color = "#D8576BFF", range = c(0,100),
+    maxRadius = 0.675, minRadius = 0.6)
+
+red <- down[as.character(down$gene) %in% as.character(DEoverlap$gene),]
+  tracks = tracks + BioCircosBarTrack("protDown2",
+  	chromosome = red$seqid, labels = as.character(red$gene),
+    starts = red$start/1e6, ends = ((red$start/1e6) + 5),
+    values = 100, color = "deepskyblue", range = c(0,100),
+    maxRadius = 0.675, minRadius = 0.6)
+
+# Add HSF4 target gene link map
+# HSF4 coordinates
+chr1 <- hsf4.gene[, "chr"]
+pos1 <- hsf4.gene[, "start"]/1e6
+
+# Target genes coordinates
+chr2 <- hsf4.TG[, "seqid"]
+pos2 <- hsf4.TG[, "start"]/1e6
+
+tracks = tracks + BioCircosLinkTrack('HSF4', gene1Chromosomes = chr1,
+  gene1Starts = pos1, gene1Ends = pos1+1, gene2Chromosome = chr2, gene2Starts = pos2,
+  gene2Ends = pos2+1, labels = as.character(hsf4.TG[, "gene"]),
+  displayLabel = FALSE, maxRadius = 0.55, color = "gray")
+
+tracks = tracks + BioCircosTextTrack("HSF4text", "HSF4",
+	x = -0.5, y = 0.045, size = "1.5em",weight = "bold",
+	opacity = 1, color = "black")
+
+
+# Add background
+tracks = tracks + BioCircosBackgroundTrack("Prot",
+	minRadius = 0.80, maxRadius = 0.95, borderColors = "salmon",
+	borderSize = 1, fillColors = "lavender")
+
+tracks = tracks + BioCircosBackgroundTrack("Genes",
+	minRadius = 0.60, maxRadius = 0.75, borderColors = "salmon",
+	borderSize = 1, fillColors = "lightyellow")
+
+
+# Add title
+tracks = tracks + BioCircosTextTrack("Title1", "Proteomics",
+	x = -0.9, y = -1.3, size = "2.2em",weight = "bold",
+	opacity = 1, color = "gold")
+
+tracks = tracks + BioCircosTextTrack("Title1", "&",
+	x = -0.4, y = -1.3, size = "2.2em",weight = "bold",
+	opacity = 1, color = "black")
+
+tracks = tracks + BioCircosTextTrack("Title3", "Transcriptomics:",
+	x = -0.3, y = -1.3, size = "2.2em",weight = "bold",
+	opacity = 1, color = "purple")
+
+tracks = tracks + BioCircosTextTrack("Title4", "TFE in RER",
+	x = 0.45, y = -1.3, size = "2.2em",weight = "bold", opacity = 1,
+	color = "black")
+
+# Add list of genes with DE in both datasets
+nm <- sort(as.character(DEoverlap$gene))
+for (i in 1:length(nm)){
+	tracks = tracks + BioCircosTextTrack(nm[i], as.character(nm[i]),
+		x = 1.35, y = -1 + (i * .1), size = "1.2em", 
+		opacity = 1, color = "deepskyblue")
+}
+
+# Graph BioCircos for High Starch Diet
+BioCircos(tracks, genomeFillColor = plasma(length(lengthChr)), genome = as.list(lengthChr),
+  genomeTicksDisplay = F, genomeLabelDy = 0, genomeLabelTextSize = "16pt",
+  chrPad = 0.015, BARMouseOverTooltipsHtml01 = "Chromosome: ",
+  BARMouseOverTooltipsHtml02 = "<br/>Start (Mb): ",
+  BARMouseOverTooltipsHtml03 = "<br/>GP width: ",
+  BARMouseOverTooltipsHtml04 = "<br/>Gene: ",
+  BARMouseOverTooltipsHtml05 = "<br/>GP height: ",
+  BARMouseOverTooltipsHtml06 = "<br/>Reference Genome: EquCab3.0
+  <br/>GP: Graphical Parameter", LINKMouseOverTooltipsHtml01 = "Target Gene: ",
+  LINKMouseOverTooltipsHtml02 = "<br/>Transcription Factor: HSF4",
+  elementId = "RER_BioCirco_TFM")
+
+
+```{js}
+$("#RER_BioCirco_TFM").append("<button id=save_svg>Save As Svg</button>");
+//Give the selectors for button and svg element to download
+addSvgSaveButtonJquery("#RER_BioCirco_TFM", "#RER_BioCirco_TFM svg");
+
+
+```{r eval = FALSE}
+htmlRunRjs
+BioCircosRed.R nodes=1,cpus-per-task=1,time=01:00:00,mem=5G \
++BioCircos MFM Differential Expression Analysis
+```
+

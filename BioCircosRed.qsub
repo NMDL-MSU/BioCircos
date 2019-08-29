@@ -1,0 +1,33 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+#SBATCH --time=01:00:00
+#SBATCH --mem=5G
+#SBATCH -C intel18
+#SBATCH -J BioCircosRed
+#SBATCH -o BioCircosRed.o%j
+
+#=====================================================================
+# This script runs: BioCircosRed.R
+# Submited on: Thu Aug 29 10:15:46 EDT 2019
+#=====================================================================
+
+# Work Directory
+cd /mnt/research/NMDL/KER_Glycogen_and_RER_Thoroughbred/Omics/Plots/RER_Thoroughbred/BioCircosRed/BioCircosRed
+
+# Run R Code
+R -e 'library("knitr");knitr::spin ("BioCircosRed.R", precious=TRUE)'
+
+# Add metadata to md file
+cat .metadata BioCircosRed.Rmd > tmp; mv tmp BioCircosRed.Rmd
+cat .metadata BioCircosRed.md > tmp; mv tmp BioCircosRed.md
+
+# Ensure javascript syntac
+sed -i 's/''r java[0-9]''/js/' BioCircosRed.Rmd
+
+# Render HTML
+R -e 'library("prettydoc");rmarkdown::render ("BioCircosRed.Rmd")'
+
+# Job Details
+echo Job Details
+scontrol show job $SLURM_JOB_ID
